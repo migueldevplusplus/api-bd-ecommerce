@@ -22,5 +22,5 @@ class User(Base):
 
     # 🔥 Auditoría
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    modified_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    modified_at = Column(DateTime, default= datetime.utcnow, onupdate=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)

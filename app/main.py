@@ -1,9 +1,13 @@
+# run command: uvicorn app.main:app --reload
+
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from uuid import UUID
-from datetime import datetime
+import hashlib
+from datetime import datetime, timezone
 
 
 from app.db import SessionLocal
@@ -28,7 +32,7 @@ def root():
 
 @app.get("/users", response_model=List[UserResponse])
 def get_users(db: Session = Depends(get_db)):
-    users = db.query(User).filter(User.deleted_at == None).all()
+    users = db.execute(select(User).where(User.deleted_at.is_(None))).scalars().all()
     return users
 
 
@@ -36,13 +40,16 @@ def get_users(db: Session = Depends(get_db)):
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
     # validar duplicado
-    existing_user = db.query(User).filter(User.email == user.email).first()
+    existing_user = db.execute(select(User).where(User.email == user.email)).scalars().first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # hash the plain text password
+    hashed_pwd = hashlib.sha256(user.password.encode('utf-8')).hexdigest()
+
     db_user = User(
         email=user.email,
-        password_hash=user.password,
+        password_hash=hashed_pwd,
         first_name=user.first_name,
         last_name=user.last_name,
     )
@@ -52,20 +59,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_user)
 
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Email already exists")
+        raise HTTPException(status_code=400, detail=f"Database Integrity Error: {str(e.orig)}")
 
     return db_user
 
 @app.delete("/users/{user_id}")
 def delete_user(user_id: UUID, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.execute(select(User).where(User.id == user_id)).scalars().first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.deleted_at = datetime.utcnow()
+    user.deleted_at = datetime.now(timezone.utc)
     db.commit()
 
     return {"message": "User deleted"}

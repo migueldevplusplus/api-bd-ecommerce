@@ -19,7 +19,7 @@ class UserResponse(BaseModel):
     is_active: bool
 
     created_at: datetime
-    modified_at: datetime | None = None
+    modified_at: datetime
     deleted_at: datetime | None = None
 
     class Config:

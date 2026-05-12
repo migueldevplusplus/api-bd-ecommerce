@@ -1,1 +1,11 @@
 Generic single-database configuration.
+
+init: alembic init <directory>
+
+Initializes a new migration environment in the specified directory.
+
+revision: alembic revision -m "message"Creates a new migration script. Use the --autogenerate flag to automatically detect changes by comparing your models to the current database.
+
+upgrade: alembic upgrade <revision>Applies migrations to reach a specific version. Use head to upgrade to the latest version.
+
+downgrade: alembic downgrade <revision>Reverts to a previous migration. Use -1 to roll back only the most recent change.
